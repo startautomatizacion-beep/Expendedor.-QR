@@ -74,9 +74,9 @@ app.post('/webhook-mp', async (req, res) => {
 
                 if (segundosBomba > 0) {
                     mqttClient.publish(MQTT_TOPICO, segundosBomba.toString(), { qos: 1 });
-                    console.log(`[DESPACHO COMERCIAL] ¡Monto de $${monto} aprobado! Pulso de ${segundosBomba}s enviado al ESP32.`);
+                    console.log("[DESPACHO COMERCIAL] Pago aprobado. Segundos enviados al ESP32: " + segundosBomba);
                 } else {
-                    console.log(`[ALERTA VENDEDOR] Se cobraron $${monto}, pero ese importe no está asignado a ningún bidón.`);
+                    console.log("[ALERTA VENDEDOR] Se recibio un cobro pero el importe no coincide.");
                 }
             }
         } catch (error) {
@@ -88,5 +88,5 @@ app.post('/webhook-mp', async (req, res) => {
 // Puerto para la nube de Render
 const PUERTO = process.env.PORT || 3000;
 app.listen(PUERTO, () => {
-    console.log(`🚀 Servidor comercial operativo y listo en puerto ${PUERTO}`);
+   console.log("🚀 Servidor comercial operativo y listo en puerto " + PUERTO);
 });

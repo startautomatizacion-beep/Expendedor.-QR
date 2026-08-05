@@ -49,7 +49,7 @@ app.post('/webhook-mp', async (req, res) => {
 
         try {
             // Consultar de forma segura a la API utilizando concatenación estándar
-            const response = await fetch("https://mercadopago.com" + paymentId, {
+            const response = await fetch("https://api.mercadopago.com/v1/payments/" + paymentId, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + MP_ACCESS_TOKEN,
@@ -79,7 +79,7 @@ app.post('/webhook-mp', async (req, res) => {
                 }
             }
         } catch (error) {
-            console.error('❌ Error de validación en la nube:', error.message);
+            console.error('❌ Error de validación en la nube: ' + error.message);
         }
     }
 });

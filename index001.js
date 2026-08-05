@@ -53,7 +53,7 @@ app.post('/webhook-mp', async (req, res) => {
             const response = await fetch(`https://mercadopago.com{paymentId}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+                    'Authorization': 'Bearer ' + MP_ACCESS_TOKEN,
                     'Content-Type': 'application/json'
                 }
             });

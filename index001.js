@@ -21,13 +21,12 @@ mqttClient.on('connect', () => {
 // WEBHOOK INTEGRAL (Soporta Simulación Developer y Pagos Reales con Centavos)
 // =========================================================================
 app.post('/webhook-mp', async (req, res) => {
-    // Responder 200 OK de inmediato para que Mercado Pago Developer no tire error de timeout
+    // Responder 200 OK de inmediato para confirmar la recepción
     res.status(200).send("OK");
 
     const { action, type, data } = req.body;
     
     // CASO 1: VALIDACIÓN PARA MODO SIMULACIÓN DEVELOPER
-    // Si Mercado Pago manda una alerta sin datos de ID reales o genéricos de testeo, forzamos un despacho de prueba
     if (req.body.id && !data) {
         console.log("\n🧪 [MODO SIMULADOR] Detectada prueba desde Mercado Pago Developer. Despachando 20 segundos...");
         mqttClient.publish(MQTT_TOPICO, "20", { qos: 1 });
@@ -46,11 +45,11 @@ app.post('/webhook-mp', async (req, res) => {
     }
 
     if (paymentId) {
-       console.log("\n🔔 Cobro detectado en el QR. ID de Transacción: " + paymentId + ". Validando en servidores...");
+        console.log("\n🔔 Cobro detectado en el QR. ID de Transacción: " + paymentId + ". Validando en servidores...");
 
         try {
-            // Consultar de forma segura a la API de Mercado Pago
-           const response = await fetch("https://mercadopago.com" + paymentId, {
+            // Consultar de forma segura a la API utilizando concatenación estándar
+            const response = await fetch("https://mercadopago.com" + paymentId, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + MP_ACCESS_TOKEN,
@@ -88,5 +87,5 @@ app.post('/webhook-mp', async (req, res) => {
 // Puerto para la nube de Render
 const PUERTO = process.env.PORT || 3000;
 app.listen(PUERTO, () => {
-   console.log("🚀 Servidor comercial operativo y listo en puerto " + PUERTO);
+    console.log("🚀 Servidor comercial operativo y listo en puerto " + PUERTO);
 });

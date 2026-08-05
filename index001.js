@@ -46,11 +46,11 @@ app.post('/webhook-mp', async (req, res) => {
     }
 
     if (paymentId) {
-        console.log(`\n🔔 Cobro detectado en el QR. ID de Transacción: ${paymentId}. Validando en servidores...`);
+       console.log("\n🔔 Cobro detectado en el QR. ID de Transacción: " + paymentId + ". Validando en servidores...");
 
         try {
             // Consultar de forma segura a la API de Mercado Pago
-            const response = await fetch(`https://mercadopago.com{paymentId}`, {
+           const response = await fetch("https://mercadopago.com" + paymentId, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + MP_ACCESS_TOKEN,

@@ -7,7 +7,7 @@ app.use(express.json());
 // =========================================================================
 // CONFIGURACIÓN COMERCIAL DEFINITIVA
 // =========================================================================
-const MP_ACCESS_TOKEN = "APP_USR-7822915003661148-020412-fbfde71a25db8cc53e66bbd8b584d418-24535359";
+const MP_ACCESS_TOKEN = "APP_USR-212431330108000-080414-50ba53a480d6eca98bb99c6146445657-209794817";
 const MQTT_BROKER_URL = "mqtt://broker.emqx.io"; 
 const MQTT_TOPICO = "expendio01/bomba/activar";  
 

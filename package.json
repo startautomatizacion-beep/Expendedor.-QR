@@ -1,0 +1,13 @@
+{
+  "name": "api-expendedor",
+  "version": "1.0.0",
+  "description": "Backend comercial para expendedor de agua",
+  "main": "index001.js",
+  "scripts": {
+    "start": "node index001.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mqtt": "^5.5.5"
+  }
+}

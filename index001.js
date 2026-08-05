@@ -21,14 +21,12 @@ mqttClient.on('connect', () => {
 // WEBHOOK PARA QR IMPRESO (Captura Órdenes y Pagos Reales)
 // =========================================================================
 app.post('/webhook-mp', async (req, res) => {
-    // 1. Responder 200 OK de inmediato a Mercado Pago para confirmar recepción
-    res.sendStatus(200);
+    res.sendStatus(200); // Responder 200 OK de inmediato a Mercado Pago
 
     const { action, type, data } = req.body;
-    
-    // Detectar el ID del pago, ya sea que venga como payment o dentro de una merchant_order
     let paymentId = null;
     
+    // Detectar el ID del pago en cualquiera de los formatos de Mercado Pago
     if (action === "payment.created" && data && data.id) {
         paymentId = data.id;
     } else if (type === "payment" && data && data.id) {
@@ -39,10 +37,10 @@ app.post('/webhook-mp', async (req, res) => {
     }
 
     if (paymentId) {
-        console.log(`\n🔔 Notificación de cobro recibida en QR Impreso. ID: ${paymentId}. Verificando...`);
+        console.log(`\n🔔 Cobro detectado en el QR. ID de Transacción: ${paymentId}. Validando...`);
 
         try {
-            // 2. Consultar los detalles del pago de forma segura a la API de Mercado Pago
+            // Consultar los detalles del pago a la API de Mercado Pago
             const response = await fetch(`https://mercadopago.com{paymentId}`, {
                 method: 'GET',
                 headers: {
@@ -51,35 +49,34 @@ app.post('/webhook-mp', async (req, res) => {
                 }
             });
 
-            if (!response.ok) throw new Error('No se pudo validar el pago en las credenciales de MP');
+            if (!response.ok) throw new Error('No se pudo validar el pago en MP');
 
             const paymentData = await response.json();
 
-            // 3. Verificar que el estado impactado sea APROBADO
             if (paymentData.status === 'approved') {
-                const monto = paymentData.transaction_amount;
+                // SOLUCIÓN DE DECIMALES: Redondea "600.00" a 600 de forma automática y segura
+                const monto = Math.round(paymentData.transaction_amount);
                 let segundosBomba = 0;
 
-                // Calibración comercial de litros por precio:
-                if (monto === 500)  segundosBomba = 20;  // 5 Litros -> 20 Segundos
-                if (monto === 1000) segundosBomba = 40;  // 10 Litros -> 40 Segundos
-                if (monto === 2000) segundosBomba = 80;  // 20 Litros -> 80 Segundos
+                // NUEVA CALIBRACIÓN DE TUS BIDONES COMERCIALES
+                if (monto === 600)  segundosBomba = 20;  // Bidón de 5 Litros  -> 20 Segundos
+                if (monto === 1200) segundosBomba = 40;  // Bidón de 10 Litros -> 40 Segundos
+                if (monto === 2400) segundosBomba = 80;  // Bidón de 20 Litros -> 80 Segundos
 
-                // 4. Si el monto coincide con un bidón, se envía la orden de despacho por MQTT
                 if (segundosBomba > 0) {
                     mqttClient.publish(MQTT_TOPICO, segundosBomba.toString(), { qos: 1 });
-                    console.log(`[DESPACHO REAL] ¡Monto de $${monto} aprobado! Pulso de ${segundosBomba}s enviado al ESP32.`);
+                    console.log(`[DESPACHO COMERCIAL] ¡Monto de $${monto} aprobado! Pulso de ${segundosBomba}s enviado al ESP32.`);
                 } else {
-                    console.log(`[ALERTA] Se recibieron $${monto} en el QR, pero no coincide con los precios configurados.`);
+                    console.log(`[ALERTA VENDEDOR] Se cobraron $${monto}, pero ese importe no está configurado en los bidones.`);
                 }
             }
         } catch (error) {
-            console.error('❌ Error en el proceso de validación en la nube:', error.message);
+            console.error('❌ Error de validación en la nube:', error.message);
         }
     }
 });
 
-// Iniciar el servicio para Render
+// Puerto para la nube de Render
 const PUERTO = process.env.PORT || 3000;
 app.listen(PUERTO, () => {
     console.log(`🚀 Servidor comercial listo para QR Impreso en puerto ${PUERTO}`);

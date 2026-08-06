@@ -1,36 +1,17 @@
-const express = require('express');
-const mqtt = require('mqtt');
-const app = express();
-const fetch = require('node-fetch');
-app.use(express.json()); 
-
-// =========================================================================
-// CONFIGURACIÓN COMERCIAL DEFINITIVA
-// =========================================================================
-const MP_ACCESS_TOKEN = "APP_USR-212431330108000-080414-50ba53a480d6eca98bb99c6146445657-209794817";
-const MQTT_BROKER_URL = "mqtt://broker.emqx.io"; 
-const MQTT_TOPICO = "expendio01/bomba/activar";  
-
-const mqttClient = mqtt.connect(MQTT_BROKER_URL);
-
-mqttClient.on('connect', () => {
-    console.log('✔ Servidor de producción en línea y conectado al Broker MQTT');
-});
-
 // =========================================================================
 // WEBHOOK INTEGRAL (Soporta Simulación Developer y Pagos Reales con Centavos)
 // =========================================================================
 app.post('/webhook-mp', async (req, res) => {
-    // Responder 200 OK de inmediato para confirmar la recepción
-    res.status(200).send("OK");
+    // 1. LOG INMEDIATO: Ver qué está llegando exactamente desde Mercado Pago
+    console.log("\n📬 [WEBHOOK RECIBIDO] Cuerpo de la petición:", JSON.stringify(req.body));
 
     const { action, type, data } = req.body;
     
     // CASO 1: VALIDACIÓN PARA MODO SIMULACIÓN DEVELOPER
     if (req.body.id && !data) {
-        console.log("\n🧪 [MODO SIMULADOR] Detectada prueba desde Mercado Pago Developer. Despachando 20 segundos...");
+        console.log("🧪 [MODO SIMULADOR] Detectada prueba desde Mercado Pago Developer. Despachando 20 segundos...");
         mqttClient.publish(MQTT_TOPICO, "20", { qos: 1 });
-        return;
+        return res.status(200).send("OK SIMULACION"); // Responder AQUÍ, al final del caso
     }
 
     // CASO 2: LOGICA DE PRODUCCIÓN PARA COMPRA REAL CON QR
@@ -45,10 +26,10 @@ app.post('/webhook-mp', async (req, res) => {
     }
 
     if (paymentId) {
-        console.log("\n🔔 Cobro detectado en el QR. ID de Transacción: " + paymentId + ". Validando en servidores...");
+        console.log("🔔 Cobro detectado en el QR. ID de Transacción: " + paymentId + ". Validando en servidores...");
 
         try {
-            // Consultar de forma segura a la API utilizando concatenación estándar
+            // Consultar a la API de Mercado Pago
             const response = await fetch("https://api.mercadopago.com/v1/payments/" + paymentId, {
                 method: 'GET',
                 headers: {
@@ -62,30 +43,30 @@ app.post('/webhook-mp', async (req, res) => {
             const paymentData = await response.json();
 
             if (paymentData.status === 'approved') {
-                // Se limpian los decimales (.00) convirtiendo el monto a un número entero perfecto
                 const monto = Math.round(paymentData.transaction_amount);
                 let segundosBomba = 0;
 
                 // Calibración comercial de tus 3 bidones de calle
-                if (monto === 600)  segundosBomba = 20;  // Bidón de 5 Litros  -> 20 Segundos
-                if (monto === 1200) segundosBomba = 40;  // Bidón de 10 Litros -> 40 Segundos
-                if (monto === 2400) segundosBomba = 80;  // Bidón de 20 Litros -> 80 Segundos
+                if (monto === 600)  segundosBomba = 20;  // Bidón de 5 Litros
+                if (monto === 1200) segundosBomba = 40;  // Bidón de 10 Litros
+                if (monto === 2400) segundosBomba = 80;  // Bidón de 20 Litros
 
                 if (segundosBomba > 0) {
                     mqttClient.publish(MQTT_TOPICO, segundosBomba.toString(), { qos: 1 });
-                    console.log("[DESPACHO COMERCIAL] Pago aprobado. Segundos enviados al ESP32: " + segundosBomba);
+                    console.log("🚀 [DESPACHO COMERCIAL] Pago aprobado. Segundos enviados al ESP32: " + segundosBomba);
                 } else {
-                    console.log("[ALERTA VENDEDOR] Se recibio un cobro pero el importe no coincide.");
+                    console.log("⚠ [ALERTA VENDEDOR] Se recibió un cobro pero el importe (" + monto + ") no coincide con ningún bidón.");
                 }
+            } else {
+                console.log("❌ [ESTADO] El pago no está aprobado. Estado actual: " + paymentData.status);
             }
         } catch (error) {
             console.error('❌ Error de validación en la nube: ' + error.message);
         }
+    } else {
+        console.log("ℹ Webhook recibido pero no contenía un ID de pago válido para procesar.");
     }
-});
 
-// Puerto para la nube de Render
-const PUERTO = process.env.PORT || 3000;
-app.listen(PUERTO, () => {
-    console.log("🚀 Servidor comercial operativo y listo en puerto " + PUERTO);
+    // 2. RESPUESTA AL FINAL: Asegura que todo el código de arriba se ejecute antes de cerrar la petición
+    return res.status(200).send("OK");
 });
